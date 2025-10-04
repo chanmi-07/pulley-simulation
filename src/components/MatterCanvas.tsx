@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import Matter from 'matter-js';
+import Matter, { Body } from 'matter-js';
 
 const MatterCanvas: React.FC = () => {
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -49,7 +49,7 @@ const MatterCanvas: React.FC = () => {
       },
     });
 
-    Matter.Composite.add(engine.world, [pulley, pulley, boxB, constraintB, ground, mouseConstraint]);
+    Matter.Composite.add(engine.world, [pulley, pulley.bodyB as Body, boxB, constraintB, ground, mouseConstraint]);
 
     const runner = Matter.Runner.create();
     Matter.Runner.run(runner, engine);
