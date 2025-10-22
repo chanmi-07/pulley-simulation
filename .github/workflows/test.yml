@@ -24,6 +24,13 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 9
+
+      # Some runners may not have the `pnpm` binary available on PATH.
+      # Use corepack to prepare/activate pnpm so the `pnpm` executable is present.
+      - name: Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@9 --activate
           
       - name: Install dependencies
         run: pnpm install
