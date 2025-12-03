@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Matter from "matter-js";
-import WeightSlider from "./WeightSlider";
+import WeightSlider from "@/components/WeightSlider";
 
 const PulleySimulation: React.FC = () => {
   const sceneRef = useRef<HTMLDivElement>(null);
