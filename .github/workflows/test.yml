@@ -1,0 +1,41 @@
+name: Run Tests
+
+on:
+  push:
+    branches: ['**'] 
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Install pnpm
+        run: npm i -g pnpm@9
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      # Some runners may not have the `pnpm` binary available on PATH.
+      # Use corepack to prepare/activate pnpm so the `pnpm` executable is present.
+      - name: Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@9 --activate
+
+      - name: Install dependencies
+        run: pnpm i && pnpm build
+
+      - name: Run tests
+        run: pnpm test -- --passWithNoTests

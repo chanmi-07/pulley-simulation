@@ -12,9 +12,10 @@ const WeightSlider: FC<WeightSliderProps> = (weightSliderProps) => {
     <div>
       <label>{label}: {value} kg</label>
       <input
-        type="range"
-        min="1"
-        max="50"
+        type="number"
+        min={1}
+        max={50}
+        step={0.1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full"
