@@ -14,6 +14,11 @@ if (typeof HTMLCanvasElement !== 'undefined') {
 			strokeStyle: '#000',
 			lineWidth: 1,
 			globalAlpha: 1,
+			font: '12px sans-serif',
+			textBaseline: 'top',
+			// text methods
+			fillText: () => {},
+			strokeText: () => {},
 			globalCompositeOperation: 'source-over',
 			// path methods
 			beginPath: () => {},
