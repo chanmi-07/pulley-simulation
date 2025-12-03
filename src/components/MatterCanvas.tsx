@@ -13,8 +13,8 @@ const PulleySimulation: React.FC = () => {
   const prevVelBRef = useRef({ x: 0, y: 0 });
   const tensionARef = useRef(0);
   const tensionBRef = useRef(0);
-  const renderRef = useRef<any>(null);
-  const runnerRef = useRef<any>(null);
+  const renderRef = useRef<Matter.Render | null>(null);
+  const runnerRef = useRef<Matter.Runner | null>(null);
   const [running, setRunning] = useState(false);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ const PulleySimulation: React.FC = () => {
         background: "#1e1e1e",
         wireframes: false,
       },
-    });
+    }) as Matter.Render;
 
     // Pulley parameters
     const pulleyX = width / 2;
@@ -119,7 +119,7 @@ const PulleySimulation: React.FC = () => {
       // --- Rope wear accumulation
       if (!ropeBroken) {
         ropeWear += velocityTension * TENSION_FACTOR;
-        ropeWear += (mass1 + mass2) * LOAD_FACTOR;
+        ropeWear += (mass1Ref.current + mass2Ref.current) * LOAD_FACTOR;
         ropeWear += BASELINE_WEAR;
         ropeWear = Math.min(ropeWear, 1);
         if (ropeWear >= MAX_WEAR) {
@@ -133,7 +133,7 @@ const PulleySimulation: React.FC = () => {
       // --- Pulley wear accumulation
       if (!pulleySeized) {
         pulleyWear += velocityTension * PULLEY_TENSION_FACTOR;
-        pulleyWear += ((mass1 + mass2) / 2) * PULLEY_LOAD_FACTOR;
+        pulleyWear += ((mass1Ref.current + mass2Ref.current) / 2) * PULLEY_LOAD_FACTOR;
         pulleyWear += PULLEY_BASELINE_WEAR;
         pulleyWear = Math.min(pulleyWear, 1);
         if (pulleyWear >= PULLEY_MAX_WEAR) {
@@ -145,8 +145,9 @@ const PulleySimulation: React.FC = () => {
       // Estimate tensions for each mass (approx.)
       // -----------------------------
       try {
-        // engine.timing.delta is not present in the TypeScript defs, cast to any
-        const dt = (engine.timing && (engine.timing as any).delta) ? (engine.timing as any).delta / 1000 : 1 / 60;
+        // engine.timing.delta may be missing in defs; read defensively
+        const timing = engine.timing as unknown as { delta?: number };
+        const dt = timing && timing.delta ? timing.delta / 1000 : 1 / 60;
 
         // mass A
         const accelA = {
@@ -170,7 +171,7 @@ const PulleySimulation: React.FC = () => {
         const tensionB = Math.max(massB * (world.gravity.y - aParallelB), 0);
         tensionBRef.current = tensionB;
       } catch (e) {
-        // ignore if bodies not ready
+        console.error("Error calculating tensions:", e);
       }
 
       // -----------------------------
@@ -241,29 +242,34 @@ const PulleySimulation: React.FC = () => {
       applyPulleyFriction(ballB);
 
       // Auto-expand canvas if masses near bottom
-      if (render && (render as any).canvas) {
+      if (render && render.canvas) {
         try {
           const margin = 120;
-          const canvasHeight = (render.options && render.options.height) ? render.options.height : (render as any).canvas.height;
+          const opts = render.options as unknown as { height?: number };
+          const canvasHeight = (render.options && opts.height) ? opts.height : render.canvas.height;
           const maxY = Math.max(ballA.position.y, ballB.position.y);
           const threshold = canvasHeight - margin;
           if (maxY + 25 > threshold) {
             const newHeight = Math.max(canvasHeight * 1.2, maxY + 25 + margin);
             if (render.options) render.options.height = newHeight;
-            (render as any).canvas.height = Math.floor(newHeight);
-            if ((render as any).canvas.style) (render as any).canvas.style.height = `${newHeight}px`;
+            render.canvas.height = Math.floor(newHeight);
+            if (render.canvas.style) render.canvas.style.height = `${newHeight}px`;
 
             // Move ground down to stay at bottom
             try {
               Matter.Body.setPosition(ground, { x: ground.position.x, y: newHeight + 40 });
-            } catch (e) {}
+            } catch (e) {
+              console.error("Error repositioning ground:", e);
+            }
 
             // Update render bounds if present
-            if ((render as any).bounds) {
-              (render as any).bounds.max.y = newHeight;
+            if (render.bounds) {
+              render.bounds.max.y = newHeight;
             }
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error("Error auto-expanding canvas:", e);
+        }
       }
 
       // store previous velocities for next step
@@ -335,6 +341,7 @@ const PulleySimulation: React.FC = () => {
         ctx.fillText(`Polea: ${pulleySeized ? 'BLOQUEADA' : 'OK'}`, infoX, infoY);
         ctx.restore();
       } catch (e) {
+        console.error("Error drawing info overlay:", e);
         // In test env the mocked context may ignore text methods — swallow errors
       }
     });
@@ -351,7 +358,9 @@ const PulleySimulation: React.FC = () => {
       try {
         if (renderRef.current) Matter.Render.stop(renderRef.current);
         if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error during cleanup stop:", e);
+      }
       Matter.World.clear(world, false);
       Matter.Engine.clear(engine);
       if (render && render.canvas && render.canvas.remove) render.canvas.remove();
@@ -373,7 +382,9 @@ const PulleySimulation: React.FC = () => {
     try {
       if (renderRef.current) Matter.Render.stop(renderRef.current);
       if (runnerRef.current) Matter.Runner.stop(runnerRef.current);
-    } catch (e) {}
+    } catch (e) {
+      console.error("Error stopping simulation:", e);
+    }
     setRunning(false);
   };
 
