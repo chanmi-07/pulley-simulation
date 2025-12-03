@@ -240,6 +240,32 @@ const PulleySimulation: React.FC = () => {
       applyPulleyFriction(ballA);
       applyPulleyFriction(ballB);
 
+      // Auto-expand canvas if masses near bottom
+      if (render && (render as any).canvas) {
+        try {
+          const margin = 120;
+          const canvasHeight = (render.options && render.options.height) ? render.options.height : (render as any).canvas.height;
+          const maxY = Math.max(ballA.position.y, ballB.position.y);
+          const threshold = canvasHeight - margin;
+          if (maxY + 25 > threshold) {
+            const newHeight = Math.max(canvasHeight * 1.2, maxY + 25 + margin);
+            if (render.options) render.options.height = newHeight;
+            (render as any).canvas.height = Math.floor(newHeight);
+            if ((render as any).canvas.style) (render as any).canvas.style.height = `${newHeight}px`;
+
+            // Move ground down to stay at bottom
+            try {
+              Matter.Body.setPosition(ground, { x: ground.position.x, y: newHeight + 40 });
+            } catch (e) {}
+
+            // Update render bounds if present
+            if ((render as any).bounds) {
+              (render as any).bounds.max.y = newHeight;
+            }
+          }
+        } catch (e) {}
+      }
+
       // store previous velocities for next step
       prevVelARef.current = { x: ballA.velocity.x, y: ballA.velocity.y };
       prevVelBRef.current = { x: ballB.velocity.x, y: ballB.velocity.y };
